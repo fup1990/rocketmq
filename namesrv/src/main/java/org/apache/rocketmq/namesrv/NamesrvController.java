@@ -69,9 +69,11 @@ public class NamesrvController {
     }
 
     public boolean initialize() {
-
+        //加载配置到configtable中
+        //HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable
         this.kvConfigManager.load();
-
+        //初始化路由服务
+        //详情请查看路由模块的源码
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
         this.remotingExecutor =
@@ -83,6 +85,7 @@ public class NamesrvController {
 
             @Override
             public void run() {
+                //定时关闭超时的连接
                 NamesrvController.this.routeInfoManager.scanNotActiveBroker();
             }
         }, 5, 10, TimeUnit.SECONDS);
@@ -91,6 +94,7 @@ public class NamesrvController {
 
             @Override
             public void run() {
+                //定期输出配置表中的信息
                 NamesrvController.this.kvConfigManager.printAllPeriodically();
             }
         }, 1, 10, TimeUnit.MINUTES);
