@@ -107,7 +107,7 @@ public class BrokerStartup {
             nettyServerConfig.setListenPort(10911);
             final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
 
-            if (BrokerRole.SLAVE == messageStoreConfig.getBrokerRole()) {
+            if (BrokerRole.SLAVE == messageStoreConfig.getBrokerRole()) {   //从节点
                 int ratio = messageStoreConfig.getAccessMessageInMemoryMaxRatio() - 10;
                 messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
             }
@@ -140,7 +140,7 @@ public class BrokerStartup {
             }
 
             String namesrvAddr = brokerConfig.getNamesrvAddr();
-            if (null != namesrvAddr) {
+            if (null != namesrvAddr) {  //校验nameserver地址
                 try {
                     String[] addrArray = namesrvAddr.split(";");
                     for (String addr : addrArray) {
@@ -156,10 +156,10 @@ public class BrokerStartup {
 
             switch (messageStoreConfig.getBrokerRole()) {
                 case ASYNC_MASTER:
-                case SYNC_MASTER:
+                case SYNC_MASTER:   //主节点brokerId=0
                     brokerConfig.setBrokerId(MixAll.MASTER_ID);
                     break;
-                case SLAVE:
+                case SLAVE:         //从节点brokerId>0
                     if (brokerConfig.getBrokerId() <= 0) {
                         System.out.printf("Slave's brokerId must be > 0");
                         System.exit(-3);
@@ -206,13 +206,13 @@ public class BrokerStartup {
                 messageStoreConfig);
             // remember all configs to prevent discard
             controller.getConfiguration().registerConfig(properties);
-
+            //初始化管理器
             boolean initResult = controller.initialize();
             if (!initResult) {
                 controller.shutdown();
                 System.exit(-3);
             }
-
+            //钩子，关闭管理器
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;
                 private AtomicInteger shutdownTimes = new AtomicInteger(0);
