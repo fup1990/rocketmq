@@ -49,10 +49,15 @@ public class RouteInfoManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    //topic对应broker的信息
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
+    //保存同意brokerName下的broker集群信息
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    //保存集群下的broker名称
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+    //保存broker的版本信息，连接信息，上次更新时间
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    //保存broker过滤服务的信息
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
@@ -111,6 +116,7 @@ public class RouteInfoManager {
         RegisterBrokerResult result = new RegisterBrokerResult();
         try {
             try {
+                //加写锁
                 this.lock.writeLock().lockInterruptibly();
 
                 Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
@@ -119,11 +125,11 @@ public class RouteInfoManager {
                     this.clusterAddrTable.put(clusterName, brokerNames);
                 }
                 brokerNames.add(brokerName);
-
+                //是否是第一次注册
                 boolean registerFirst = false;
 
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
-                if (null == brokerData) {
+                if (null == brokerData) {   //是第一次注册，创建brokerData
                     registerFirst = true;
                     brokerData = new BrokerData(clusterName, brokerName, new HashMap<Long, String>());
                     this.brokerAddrTable.put(brokerName, brokerData);
@@ -132,19 +138,20 @@ public class RouteInfoManager {
                 registerFirst = registerFirst || (null == oldAddr);
 
                 if (null != topicConfigWrapper
-                    && MixAll.MASTER_ID == brokerId) {
+                    && MixAll.MASTER_ID == brokerId) {  //topicConfig包装类不为空，并且注册的broker是主节点
                     if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion())
                         || registerFirst) {
                         ConcurrentMap<String, TopicConfig> tcTable =
                             topicConfigWrapper.getTopicConfigTable();
                         if (tcTable != null) {
                             for (Map.Entry<String, TopicConfig> entry : tcTable.entrySet()) {
+                                //更新topic队列信息
                                 this.createAndUpdateQueueData(brokerName, entry.getValue());
                             }
                         }
                     }
                 }
-
+                //更新存活broker表中
                 BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr,
                     new BrokerLiveInfo(
                         System.currentTimeMillis(),
@@ -163,17 +170,18 @@ public class RouteInfoManager {
                     }
                 }
 
-                if (MixAll.MASTER_ID != brokerId) {
+                if (MixAll.MASTER_ID != brokerId) { //如果注册的broker是从节点
                     String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
                     if (masterAddr != null) {
                         BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.get(masterAddr);
-                        if (brokerLiveInfo != null) {
+                        if (brokerLiveInfo != null) {   //返回主节点信息
                             result.setHaServerAddr(brokerLiveInfo.getHaServerAddr());
                             result.setMasterAddr(masterAddr);
                         }
                     }
                 }
             } finally {
+                //是否写锁
                 this.lock.writeLock().unlock();
             }
         } catch (Exception e) {
