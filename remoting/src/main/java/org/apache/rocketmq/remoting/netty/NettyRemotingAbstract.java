@@ -360,10 +360,13 @@ public abstract class NettyRemotingAbstract {
         final int opaque = request.getOpaque();
 
         try {
+            //创建响应
             final ResponseFuture responseFuture = new ResponseFuture(opaque, timeoutMillis, null, null);
+            //添加到响应表,等待定时器执行
             this.responseTable.put(opaque, responseFuture);
             final SocketAddress addr = channel.remoteAddress();
-            channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
+            //写入channel
+            channel.writeAndFlush(request).addListener(new ChannelFutureListener() {    //添加监听回调
                 @Override
                 public void operationComplete(ChannelFuture f) throws Exception {
                     if (f.isSuccess()) {
@@ -372,7 +375,7 @@ public abstract class NettyRemotingAbstract {
                     } else {
                         responseFuture.setSendRequestOK(false);
                     }
-
+                    //从响应表中清除
                     responseTable.remove(opaque);
                     responseFuture.setCause(f.cause());
                     responseFuture.putResponse(null);

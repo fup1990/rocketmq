@@ -96,6 +96,7 @@ public class BrokerController {
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
     private final MessageStoreConfig messageStoreConfig;
+    //管理Consumer的消费进度
     private final ConsumerOffsetManager consumerOffsetManager;
     private final ConsumerManager consumerManager;
     private final ConsumerFilterManager consumerFilterManager;
@@ -105,6 +106,7 @@ public class BrokerController {
     private final PullRequestHoldService pullRequestHoldService;
     private final MessageArrivingListener messageArrivingListener;
     private final Broker2Client broker2Client;
+    //用来管理订阅组，包括订阅权限等
     private final SubscriptionGroupManager subscriptionGroupManager;
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
@@ -121,9 +123,11 @@ public class BrokerController {
     private final BrokerStatsManager brokerStatsManager;
     private final List<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
     private final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
+    //用于broker层的消息落地存储
     private MessageStore messageStore;
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
+    //用于管理broker中存储的所有topic的配置
     private TopicConfigManager topicConfigManager;
     private ExecutorService sendMessageExecutor;
     private ExecutorService pullMessageExecutor;
@@ -198,7 +202,6 @@ public class BrokerController {
     }
 
     public boolean initialize() throws CloneNotSupportedException {
-        //加载本地信息
         boolean result = this.topicConfigManager.load();
 
         result = result && this.consumerOffsetManager.load();
@@ -267,7 +270,7 @@ public class BrokerController {
             this.consumerManageExecutor =
                 Executors.newFixedThreadPool(this.brokerConfig.getConsumerManageThreadPoolNums(), new ThreadFactoryImpl(
                     "ConsumerManageThread_"));
-
+            //注册处理类
             this.registerProcessor();
 
             final long initialDelay = UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis();
@@ -651,10 +654,11 @@ public class BrokerController {
     }
 
     public void start() throws Exception {
+        //启动消息存储器
         if (this.messageStore != null) {
             this.messageStore.start();
         }
-
+        //启动网络通信服务端
         if (this.remotingServer != null) {
             this.remotingServer.start();
         }
@@ -662,7 +666,7 @@ public class BrokerController {
         if (this.fastRemotingServer != null) {
             this.fastRemotingServer.start();
         }
-
+        //启动网络通信客户端
         if (this.brokerOuterAPI != null) {
             this.brokerOuterAPI.start();
         }
@@ -678,9 +682,9 @@ public class BrokerController {
         if (this.filterServerManager != null) {
             this.filterServerManager.start();
         }
-
+        //向所有NameServer注册broker信息
         this.registerBrokerAll(true, false);
-
+        //定时向所有NameServer注册broker信息
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override

@@ -150,6 +150,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void start() {
+        //worker线程池处理操作
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(
             nettyClientConfig.getClientWorkerThreads(),
             new ThreadFactory() {
@@ -182,14 +183,20 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     }
                     pipeline.addLast(
                         defaultEventExecutorGroup,
+                            //消息编码
                         new NettyEncoder(),
+                            //消息解码
                         new NettyDecoder(),
+                            //心跳
                         new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
+                            //连接管理handler
+                            //将连接放入eventQueue，触发对应的监听器
                         new NettyConnectManageHandler(),
+                            //业务处理handler
                         new NettyClientHandler());
                 }
             });
-
+        //定期扫描响应表,清理超时的响应,未超时的执行回调
         this.timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -202,6 +209,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }, 1000 * 3, 1000);
 
         if (this.channelEventListener != null) {
+            //启动连接监听线程池
             this.nettyEventExecutor.start();
         }
     }
@@ -360,14 +368,18 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     @Override
     public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
+        //根据broker addr获取连接
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
             try {
                 if (this.rpcHook != null) {
+                    //钩子，执行前置方法
                     this.rpcHook.doBeforeRequest(addr, request);
                 }
+                //同步操作
                 RemotingCommand response = this.invokeSyncImpl(channel, request, timeoutMillis);
                 if (this.rpcHook != null) {
+                    //钩子，执行后置方法
                     this.rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(channel), request, response);
                 }
                 return response;
@@ -446,7 +458,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         return null;
     }
-
+    //建立连接
     private Channel createChannel(final String addr) throws InterruptedException {
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
@@ -475,9 +487,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
 
                 if (createNewConnection) {
+                    //建立连接
                     ChannelFuture channelFuture = this.bootstrap.connect(RemotingHelper.string2SocketAddress(addr));
                     log.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
                     cw = new ChannelWrapper(channelFuture);
+                    //将channel放入channel表中
                     this.channelTables.put(addr, cw);
                 }
             } catch (Exception e) {
@@ -491,6 +505,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         if (cw != null) {
             ChannelFuture channelFuture = cw.getChannelFuture();
+            //同步连接，阻塞3秒
             if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
                 if (cw.isOK()) {
                     log.info("createChannel: connect remote host[{}] success, {}", addr, channelFuture.toString());
