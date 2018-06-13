@@ -189,12 +189,19 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     public void initChannel(SocketChannel ch) throws Exception {
                         ch.pipeline()
                             .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME,
+                                    //握手
                                 new HandshakeHandler(TlsSystemConfig.tlsMode))
                             .addLast(defaultEventExecutorGroup,
+                                    //消息编码
                                 new NettyEncoder(),
+                                    //消息解码
                                 new NettyDecoder(),
+                                    //心跳
                                 new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
+                                    //连接管理handler
+                                    //将连接放入eventQueue，触发对应的监听器
                                 new NettyConnectManageHandler(),
+                                    //业务处理handler
                                 new NettyServerHandler()
                             );
                     }

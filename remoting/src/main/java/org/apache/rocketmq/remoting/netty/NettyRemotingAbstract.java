@@ -219,6 +219,7 @@ public abstract class NettyRemotingAbstract {
 
             try {
                 final RequestTask requestTask = new RequestTask(run, ctx.channel(), cmd);
+                //线程池执行任务
                 pair.getObject2().submit(requestTask);
             } catch (RejectedExecutionException e) {
                 if ((System.currentTimeMillis() % 10000) == 0) {
