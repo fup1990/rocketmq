@@ -150,7 +150,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void start() {
-        //worker线程池处理操作
+        //worker线程池处理IO操作
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(
             nettyClientConfig.getClientWorkerThreads(),
             new ThreadFactory() {
@@ -190,9 +190,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                             //心跳
                         new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
                             //连接管理handler
-                            //将连接放入eventQueue，触发对应的监听器
+                            //将channel放入eventQueue，触发对应的监听器
                         new NettyConnectManageHandler(),
-                            //业务处理handler
+                            //业务处理handler，读写channel
                         new NettyClientHandler());
                 }
             });
@@ -209,7 +209,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }, 1000 * 3, 1000);
 
         if (this.channelEventListener != null) {
-            //启动连接监听线程池
+            //启动连接监听线程池，根据channel的的不同类型，触发监听
             this.nettyEventExecutor.start();
         }
     }

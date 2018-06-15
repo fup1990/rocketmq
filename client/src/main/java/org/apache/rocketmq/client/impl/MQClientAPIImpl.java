@@ -200,10 +200,12 @@ public class MQClientAPIImpl {
 
     public String fetchNameServerAddr() {
         try {
+            //http远程获取name server地址
             String addrs = this.topAddressing.fetchNSAddr();
             if (addrs != null) {
                 if (!addrs.equals(this.nameSrvAddr)) {
                     log.info("name server address changed, old=" + this.nameSrvAddr + ", new=" + addrs);
+                    //更新remoting client中维护的name server列表
                     this.updateNameServerAddressList(addrs);
                     this.nameSrvAddr = addrs;
                     return nameSrvAddr;
