@@ -398,6 +398,7 @@ public class MQClientAPIImpl {
                         }
 
                         try {
+                            //消息发送成功，执行回调
                             sendCallback.onSuccess(sendResult);
                         } catch (Throwable e) {
                         }
