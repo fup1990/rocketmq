@@ -58,7 +58,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         switch (request.getCode()) {
-            case RequestCode.CHECK_TRANSACTION_STATE:
+            case RequestCode.CHECK_TRANSACTION_STATE:   //执行自定义监听，向broker发送请求，结束事务
                 return this.checkTransactionState(ctx, request);
             case RequestCode.NOTIFY_CONSUMER_IDS_CHANGED:
                 return this.notifyConsumerIdsChanged(ctx, request);
@@ -70,7 +70,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             case RequestCode.GET_CONSUMER_RUNNING_INFO:
                 return this.getConsumerRunningInfo(ctx, request);
 
-            case RequestCode.CONSUME_MESSAGE_DIRECTLY:
+            case RequestCode.CONSUME_MESSAGE_DIRECTLY:  //根据不同的消费模式（顺序消费与非顺序消费），消费消息，执行consumeMessage，返回消费状态
                 return this.consumeMessageDirectly(ctx, request);
             default:
                 break;
@@ -92,9 +92,11 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         if (messageExt != null) {
             final String group = messageExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
             if (group != null) {
+                //选择一个producer
                 MQProducerInner producer = this.mqClientFactory.selectProducer(group);
                 if (producer != null) {
                     final String addr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                    //检查事务状态，向broker发送请求 结束事务
                     producer.checkTransactionState(addr, messageExt, requestHeader);
                 } else {
                     log.debug("checkTransactionState, pick producer by group[{}] failed", group);
@@ -187,7 +189,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
                 .decodeCommandCustomHeader(ConsumeMessageDirectlyResultRequestHeader.class);
 
         final MessageExt msg = MessageDecoder.decode(ByteBuffer.wrap(request.getBody()));
-
+        //根据不同的消费模式（顺序消费与非顺序消费），消费消息，执行consumeMessage，返回消费状态
         ConsumeMessageDirectlyResult result =
             this.mqClientFactory.consumeMessageDirectly(msg, requestHeader.getConsumerGroup(), requestHeader.getBrokerName());
 

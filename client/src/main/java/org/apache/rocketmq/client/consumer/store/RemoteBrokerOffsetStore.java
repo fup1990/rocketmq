@@ -140,7 +140,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             }
         }
 
-        if (!unusedMQ.isEmpty()) {
+        if (!unusedMQ.isEmpty()) {  //删除没有用的消息队列
             for (MessageQueue mq : unusedMQ) {
                 this.offsetTable.remove(mq);
                 log.info("remove unused mq, {}, {}", mq, this.groupName);
@@ -202,6 +202,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     @Override
     public void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
+        //根据broker name获取broker address，无论主从，取第一个
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInAdmin(mq.getBrokerName());
         if (null == findBrokerResult) {
 

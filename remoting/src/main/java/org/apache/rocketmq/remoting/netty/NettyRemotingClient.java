@@ -85,7 +85,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final AtomicReference<String> namesrvAddrChoosed = new AtomicReference<String>();
     private final AtomicInteger namesrvIndex = new AtomicInteger(initValueIndex());
     private final Lock lockNamesrvChannel = new ReentrantLock();
-
+    //公共线程池
     private final ExecutorService publicExecutor;
 
     /**

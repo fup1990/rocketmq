@@ -86,6 +86,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
             @Override
             public void run() {
+                //删除过期消息
                 cleanExpireMsg();
             }
 
@@ -170,7 +171,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                     case CONSUME_SUCCESS:
                         result.setConsumeResult(CMResult.CR_SUCCESS);
                         break;
-                    case RECONSUME_LATER:
+                    case RECONSUME_LATER:   //延迟消费
                         result.setConsumeResult(CMResult.CR_LATER);
                         break;
                     default:

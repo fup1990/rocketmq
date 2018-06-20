@@ -1181,7 +1181,7 @@ public class MQClientInstance {
         MQConsumerInner mqConsumerInner = this.consumerTable.get(consumerGroup);
         if (null != mqConsumerInner) {
             DefaultMQPushConsumerImpl consumer = (DefaultMQPushConsumerImpl) mqConsumerInner;
-
+            //根据不同的消费模式（顺序消费与非顺序消费），消费消息，执行consumeMessage，返回消费状态
             ConsumeMessageDirectlyResult result = consumer.getConsumeMessageService().consumeMessageDirectly(msg, brokerName);
             return result;
         }
