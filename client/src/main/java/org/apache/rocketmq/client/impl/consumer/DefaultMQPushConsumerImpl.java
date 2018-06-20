@@ -587,7 +587,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             this.offsetStore = new LocalFileOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
                             break;
                         case CLUSTERING:
-                            //根据topic将偏移量数据同步给指定broker，主从节点当中随机同步一个
+                            //根据topic将偏移量数据同步给指定broker，主从节点当中随机同步一个，默认
                             this.offsetStore = new RemoteBrokerOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
                             break;
                         default:
