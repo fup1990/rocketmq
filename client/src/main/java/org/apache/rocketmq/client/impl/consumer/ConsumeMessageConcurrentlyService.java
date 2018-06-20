@@ -146,6 +146,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     @Override
     public ConsumeMessageDirectlyResult consumeMessageDirectly(MessageExt msg, String brokerName) {
         ConsumeMessageDirectlyResult result = new ConsumeMessageDirectlyResult();
+        //无序
         result.setOrder(false);
         result.setAutoCommit(true);
 
@@ -165,6 +166,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         log.info("consumeMessageDirectly receive new message: {}", msg);
 
         try {
+            //消费消息
             ConsumeConcurrentlyStatus status = this.messageListener.consumeMessage(msgs, context);
             if (status != null) {
                 switch (status) {
