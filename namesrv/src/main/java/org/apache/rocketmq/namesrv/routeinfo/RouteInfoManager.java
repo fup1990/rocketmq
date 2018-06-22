@@ -181,7 +181,7 @@ public class RouteInfoManager {
                     }
                 }
             } finally {
-                //是否写锁
+                //释放写锁
                 this.lock.writeLock().unlock();
             }
         } catch (Exception e) {

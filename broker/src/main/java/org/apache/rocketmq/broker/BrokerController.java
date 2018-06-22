@@ -672,15 +672,15 @@ public class BrokerController {
         }
         //启动拉取请求线程
         //长轮询
-        //
+        //处理请求
         if (this.pullRequestHoldService != null) {
             this.pullRequestHoldService.start();
         }
-
+        //启动定时器，扫描失效的channel并关闭
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.start();
         }
-
+        //
         if (this.filterServerManager != null) {
             this.filterServerManager.start();
         }
