@@ -363,7 +363,7 @@ public abstract class NettyRemotingAbstract {
         try {
             //创建响应
             final ResponseFuture responseFuture = new ResponseFuture(opaque, timeoutMillis, null, null);
-            //添加到响应表,等待定时器执行
+            //添加到响应表
             this.responseTable.put(opaque, responseFuture);
             final SocketAddress addr = channel.remoteAddress();
             //写入channel
