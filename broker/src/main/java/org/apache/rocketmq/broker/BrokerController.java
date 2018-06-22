@@ -662,7 +662,7 @@ public class BrokerController {
         if (this.remotingServer != null) {
             this.remotingServer.start();
         }
-
+        //主从同步服务端
         if (this.fastRemotingServer != null) {
             this.fastRemotingServer.start();
         }
@@ -670,7 +670,9 @@ public class BrokerController {
         if (this.brokerOuterAPI != null) {
             this.brokerOuterAPI.start();
         }
-
+        //启动拉取请求线程
+        //长轮询
+        //
         if (this.pullRequestHoldService != null) {
             this.pullRequestHoldService.start();
         }

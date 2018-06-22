@@ -379,11 +379,12 @@ public abstract class NettyRemotingAbstract {
                     //从响应表中清除
                     responseTable.remove(opaque);
                     responseFuture.setCause(f.cause());
+                    //释放闭锁
                     responseFuture.putResponse(null);
                     log.warn("send a request command to channel <" + addr + "> failed.");
                 }
             });
-
+            //利用闭锁阻塞线程，等待响应结果
             RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis);
             if (null == responseCommand) {
                 if (responseFuture.isSendRequestOK()) {
