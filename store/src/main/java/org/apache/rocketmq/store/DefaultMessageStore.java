@@ -308,7 +308,7 @@ public class DefaultMessageStore implements MessageStore {
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
 
-        if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
+        if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {  //从节点不负责存储消息
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
                 log.warn("message store is slave mode, so putMessage is forbidden ");
@@ -1681,6 +1681,7 @@ public class DefaultMessageStore implements MessageStore {
             while (!this.isStopped()) {
                 try {
                     int interval = DefaultMessageStore.this.getMessageStoreConfig().getFlushIntervalConsumeQueue();
+                    //闭锁阻塞interval
                     this.waitForRunning(interval);
                     this.doFlush(1);
                 } catch (Exception e) {
