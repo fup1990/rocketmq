@@ -118,6 +118,7 @@ public abstract class ServiceThread implements Runnable {
             log.error("Interrupted", e);
         } finally {
             hasNotified.set(false);
+            //交换write和read
             this.onWaitEnd();
         }
     }
