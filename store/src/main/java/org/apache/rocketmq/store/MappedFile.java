@@ -205,7 +205,7 @@ public class MappedFile extends ReferenceResource {
         int currentPos = this.wrotePosition.get();
 
         if (currentPos < this.fileSize) {
-            //writeBuffer不为空则选用writeBuffer，之后通过fileChannel刷盘，否则选择使用mappedByteBuffer
+            //writeBuffer不为空则选用writeBuffer，之后通过commit方法，写到fileChannel，通过写到fileChannel刷盘，否则选择使用mappedByteBuffer
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
             AppendMessageResult result = null;

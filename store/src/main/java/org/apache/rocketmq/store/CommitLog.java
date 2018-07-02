@@ -644,6 +644,7 @@ public class CommitLog {
                 GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                 //将请求放入requestsWrite的list中
                 service.putRequest(request);
+                //阻塞闭锁，等待刷盘结束
                 boolean flushOK = request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
                 if (!flushOK) {
                     log.error("do groupcommit, wait for flush failed, topic: " + messageExt.getTopic() + " tags: " + messageExt.getTags()
@@ -958,7 +959,6 @@ public class CommitLog {
 
             while (!this.isStopped()) {
                 boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
-
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
 
@@ -969,6 +969,7 @@ public class CommitLog {
 
                 // Print flush progress
                 long currentTimeMillis = System.currentTimeMillis();
+                //当前时间大于上次刷盘与间隔时间之和
                 if (currentTimeMillis >= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) {
                     this.lastFlushTimestamp = currentTimeMillis;
                     flushPhysicQueueLeastPages = 0;
@@ -987,6 +988,7 @@ public class CommitLog {
                     }
 
                     long begin = System.currentTimeMillis();
+                    //刷盘操作
                     CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
                     long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
                     if (storeTimestamp > 0) {
@@ -1084,7 +1086,7 @@ public class CommitLog {
         private void doCommit() {
             synchronized (this.requestsRead) {
                 if (!this.requestsRead.isEmpty()) {
-                    for (GroupCommitRequest req : this.requestsRead) {
+                    for (GroupCommitRequest req : this.requestsRead) {  //遍历刷盘请求
                         // There may be a message in the next file, so a maximum of
                         // two times the flush
                         boolean flushOK = false;
@@ -1116,9 +1118,11 @@ public class CommitLog {
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
 
-            while (!this.isStopped()) {
+            while (!this.isStopped()) { //服务正常运行，长轮询执行刷盘操作
                 try {
+                    //阻塞线程，转换requestsWrite和requestsRead
                     this.waitForRunning(10);
+                    //执行刷盘操作
                     this.doCommit();
                 } catch (Exception e) {
                     CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
@@ -1127,6 +1131,7 @@ public class CommitLog {
 
             // Under normal circumstances shutdown, wait for the arrival of the
             // request, and then flush
+            //服务关闭前，再执行一次刷盘
             try {
                 Thread.sleep(10);
             } catch (InterruptedException e) {
