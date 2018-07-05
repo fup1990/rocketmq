@@ -107,6 +107,7 @@ public class HAService {
 
     public void start() throws Exception {
         this.acceptSocketService.beginAccept();
+        //与其他节点通信
         this.acceptSocketService.start();
         this.groupTransferService.start();
         this.haClient.start();
@@ -215,8 +216,11 @@ public class HAService {
                                         + sc.socket().getRemoteSocketAddress());
 
                                     try {
+                                        //新建连接
                                         HAConnection conn = new HAConnection(HAService.this, sc);
+                                        //启动读写线程
                                         conn.start();
+                                        //将连接信息放入list
                                         HAService.this.addConnection(conn);
                                     } catch (Exception e) {
                                         log.error("new HAConnection exception", e);
@@ -437,9 +441,11 @@ public class HAService {
             while (true) {
                 int diff = this.byteBufferRead.position() - this.dispatchPostion;
                 if (diff >= msgHeaderSize) {
+                    //主节点commitlog的最大偏移量
                     long masterPhyOffset = this.byteBufferRead.getLong(this.dispatchPostion);
+                    //传输的commitlog文件大小
                     int bodySize = this.byteBufferRead.getInt(this.dispatchPostion + 8);
-
+                    //从节点commitlog的最大偏移量
                     long slavePhyOffset = HAService.this.defaultMessageStore.getMaxPhyOffset();
 
                     if (slavePhyOffset != 0) {
@@ -454,7 +460,7 @@ public class HAService {
                         byte[] bodyData = new byte[bodySize];
                         this.byteBufferRead.position(this.dispatchPostion + msgHeaderSize);
                         this.byteBufferRead.get(bodyData);
-
+                        //同步从节点本地的commitlog
                         HAService.this.defaultMessageStore.appendToCommitLog(masterPhyOffset, bodyData);
 
                         this.byteBufferRead.position(readSocketPos);
@@ -548,9 +554,10 @@ public class HAService {
 
             while (!this.isStopped()) {
                 try {
-                    if (this.connectMaster()) {
+                    if (this.connectMaster()) { //连接主节点
 
                         if (this.isTimeToReportOffset()) {
+                            //向主节点报告commitlog的偏移量
                             boolean result = this.reportSlaveMaxOffset(this.currentReportedOffset);
                             if (!result) {
                                 this.closeMaster();
@@ -558,9 +565,9 @@ public class HAService {
                         }
 
                         this.selector.select(1000);
-
+                        //接收主节点发送过来的最新commitlog,并执行同步
                         boolean ok = this.processReadEvent();
-                        if (!ok) {
+                        if (!ok) {  //异常，关闭连接
                             this.closeMaster();
                         }
 
