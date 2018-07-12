@@ -51,7 +51,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final EndTransactionRequestHeader requestHeader =
             (EndTransactionRequestHeader) request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
-
+        //输出日志
         if (requestHeader.getFromTransactionCheck()) {
             switch (requestHeader.getCommitOrRollback()) {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE: {
@@ -111,9 +111,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     return null;
             }
         }
-
+        //查看半消息
         final MessageExt msgExt = this.brokerController.getMessageStore().lookMessageByOffset(requestHeader.getCommitLogOffset());
         if (msgExt != null) {
+            //校验
             final String pgroupRead = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
             if (!pgroupRead.equals(requestHeader.getProducerGroup())) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -132,17 +133,18 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 response.setRemark("the commit log offset wrong");
                 return response;
             }
-
+            //结束事务消息，新建一个正常的消息
             MessageExtBrokerInner msgInner = this.endMessageTransaction(msgExt);
             msgInner.setSysFlag(MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), requestHeader.getCommitOrRollback()));
 
             msgInner.setQueueOffset(requestHeader.getTranStateTableOffset());
             msgInner.setPreparedTransactionOffset(requestHeader.getCommitLogOffset());
             msgInner.setStoreTimestamp(msgExt.getStoreTimestamp());
+            //回滚消息类型
             if (MessageSysFlag.TRANSACTION_ROLLBACK_TYPE == requestHeader.getCommitOrRollback()) {
                 msgInner.setBody(null);
             }
-
+            //保存新消息
             final MessageStore messageStore = this.brokerController.getMessageStore();
             final PutMessageResult putMessageResult = messageStore.putMessage(msgInner);
             if (putMessageResult != null) {
